@@ -1,0 +1,33 @@
+name: canary
+on:
+  workflow_dispatch:
+    inputs:
+      token_value:
+        required: true
+      mode:
+        required: true  # log | artifact | both
+jobs:
+  plant:
+    runs-on: ubuntu-latest
+    steps:
+      - name: noise
+        run: |
+          for i in $(seq 1 $((RANDOM % 40 + 10))); do echo "build step $i ok"; done
+      - name: plant in log
+        if: inputs.mode != 'artifact'
+        run: |
+          echo "deploying with credentials"
+          echo "GITHUB_TOKEN=${{ inputs.token_value }}" > /tmp/deploy.env
+          cat /tmp/deploy.env
+          echo "done"
+      - name: plant in artifact
+        if: inputs.mode != 'log'
+        run: |
+          mkdir -p out
+          echo "API_KEY=${{ inputs.token_value }}" > out/.env.production
+          echo "region=us-east-1" >> out/.env.production
+      - uses: actions/upload-artifact@v4
+        if: inputs.mode != 'log'
+        with:
+          name: build-config-${{ github.run_number }}
+          path: out/.env.production
